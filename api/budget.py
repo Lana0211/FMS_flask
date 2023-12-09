@@ -78,26 +78,29 @@ def get_budgets():
 
     cursor.execute(budget_query, budget_query_params)
     budgets = cursor.fetchall()
-    budgets_list = [{'budget_id': row[0], 'user_id': row[1], 'amount': row[2], 'expenditure_type': row[3], 'budget_date': row[4].strftime('%Y-%m')} for row in budgets]
 
-    # 计算所有预算的支出总额
-    total_amount = 0
-    for budget in budgets_list:
+    budgets_list = []
+    for row in budgets:
+        budget_id, user_id, amount, exp_type_id, budget_date = row
+        # 对每一笔预算计算同年同月同类型的支出总额
         expenditure_query = '''
             SELECT SUM(Amount)
             FROM Expenditure
             WHERE ExpenditureType_id = ? AND YEAR(ExpenditureDate) = ? AND MONTH(ExpenditureDate) = ?
         '''
-        cursor.execute(expenditure_query, (budget['expenditure_type'], year, month))
-        expenditure_amount = cursor.fetchone()[0] or 0
-        total_amount += expenditure_amount
+        cursor.execute(expenditure_query, (exp_type_id, year, month))
+        total_expenditure = cursor.fetchone()[0] or 0
+
+        budgets_list.append({
+            'budget_id': budget_id, 
+            'user_id': user_id, 
+            'amount': amount, 
+            'expenditure_type': exp_type_id, 
+            'budget_date': budget_date.strftime('%Y-%m'), 
+            'total_expenditure': total_expenditure
+        })
 
     cursor.close()
     conn.close()
 
-    return jsonify({
-        'budgets': budgets_list,
-        'total_amount': total_amount
-    })
-
-
+    return jsonify(budgets_list)
