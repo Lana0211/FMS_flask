@@ -15,9 +15,9 @@ def create_budget():
 
     # 新增預算
     cursor.execute('''
-        INSERT INTO Budget (User_id, Amount, ExpenditureType_id, StartDate, EndDate)
-        VALUES (?, ?, ?, ?, ?)
-    ''', data['user_id'], data['amount'], data['expenditure_type'], data['start_date'], data['end_date'])
+        INSERT INTO Budget (User_id, Amount, ExpenditureType_id, BudgetDate)
+        VALUES (?, ?, ?, ?)
+    ''', data['user_id'], data['amount'], data['expenditure_type'], data['budget_date'])
 
     conn.commit()
     cursor.close()
@@ -33,9 +33,9 @@ def update_budget(budget_id):
     # 更新預算
     cursor.execute('''
         UPDATE Budget
-        SET Amount = ?, ExpenditureType_id = ?, StartDate = ?, EndDate = ?
+        SET Amount = ?, ExpenditureType_id = ?, BudgetDate = ?
         WHERE Budget_id = ?
-    ''', data['amount'], data['expenditure_type'], data['start_date'], data['end_date'], budget_id)
+    ''', data['amount'], data['expenditure_type'], data['budget_date'], budget_id)
 
     conn.commit()
     cursor.close()
@@ -64,14 +64,13 @@ def get_budgets():
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # 获取在指定的开始和结束日期区间内的预算
+    # 获取在指定的日期区间内的预算
     budget_query = '''
-        SELECT Budget_id, User_id, Amount, ExpenditureType_id, StartDate, EndDate
+        SELECT Budget_id, User_id, Amount, ExpenditureType_id, BudgetDate
         FROM Budget
-        WHERE (YEAR(StartDate) = ? AND MONTH(StartDate) = ?) OR 
-            (YEAR(EndDate) = ? AND MONTH(EndDate) = ?)
+        WHERE YEAR(BudgetDate) = ? AND MONTH(BudgetDate) = ?
     '''
-    budget_query_params = [year, month, year, month]
+    budget_query_params = [year, month]
 
     if expenditure_type:
         budget_query += ' AND ExpenditureType_id = ?'
@@ -79,7 +78,7 @@ def get_budgets():
 
     cursor.execute(budget_query, budget_query_params)
     budgets = cursor.fetchall()
-    budgets_list = [{'budget_id': row[0], 'user_id': row[1], 'amount': row[2], 'expenditure_type': row[3], 'start_date': row[4].strftime('%Y-%m-%d'), 'end_date': row[5].strftime('%Y-%m-%d')} for row in budgets]
+    budgets_list = [{'budget_id': row[0], 'user_id': row[1], 'amount': row[2], 'expenditure_type': row[3], 'budget_date': row[4].strftime('%Y-%m')} for row in budgets]
 
     # 计算所有预算的支出总额
     total_amount = 0
@@ -87,9 +86,9 @@ def get_budgets():
         expenditure_query = '''
             SELECT SUM(Amount)
             FROM Expenditure
-            WHERE ExpenditureType_id = ? AND ExpenditureDate BETWEEN ? AND ?
+            WHERE ExpenditureType_id = ? AND YEAR(ExpenditureDate) = ? AND MONTH(ExpenditureDate) = ?
         '''
-        cursor.execute(expenditure_query, (budget['expenditure_type'], budget['start_date'], budget['end_date']))
+        cursor.execute(expenditure_query, (budget['expenditure_type'], year, month))
         expenditure_amount = cursor.fetchone()[0] or 0
         total_amount += expenditure_amount
 
