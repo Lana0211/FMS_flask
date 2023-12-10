@@ -1,4 +1,6 @@
 # api/expenditure.py
+from datetime import datetime
+
 import pyodbc
 from flask import Blueprint, current_app, jsonify, request
 
@@ -81,8 +83,8 @@ def delete_expenditure(expenditure_id):
 
 @expenditure_blueprint.route('/expenditures', methods=['GET'])
 def get_expenditure():
-    year = request.args.get('year')
-    month = request.args.get('month')
+    year = request.args.get('year', default=str(datetime.now().year))
+    month = request.args.get('month', default=str(datetime.now().month).zfill(2))
     expenditure_type = request.args.get('expenditure_type')
     
     conn = get_db_connection()
@@ -92,6 +94,7 @@ def get_expenditure():
         SELECT Expenditure_id, User_id, Amount, ExpenditureType_id, ExpenditureDate
         FROM Expenditure
         WHERE YEAR(ExpenditureDate) = ? AND MONTH(ExpenditureDate) = ?
+        ORDER BY ExpenditureDate DESC
     '''
     total_amount_query = '''
         SELECT SUM(Amount)

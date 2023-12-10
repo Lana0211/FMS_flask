@@ -1,4 +1,6 @@
 # api/income.py
+from datetime import datetime
+
 import pyodbc
 from flask import Blueprint, current_app, jsonify, request
 
@@ -80,8 +82,8 @@ def delete_income(income_id):
 
 @income_blueprint.route('/incomes', methods=['GET'])
 def get_incomes():
-    year = request.args.get('year')
-    month = request.args.get('month')
+    year = request.args.get('year', default=str(datetime.now().year))
+    month = request.args.get('month', default=str(datetime.now().month).zfill(2))
     income_type = request.args.get('income_type')
     
     conn = get_db_connection()
@@ -91,6 +93,7 @@ def get_incomes():
         SELECT Income_id, User_id, Amount, IncomeType_id, IncomeDate
         FROM Income
         WHERE YEAR(IncomeDate) = ? AND MONTH(IncomeDate) = ?
+        ORDER BY IncomeDate DESC
     '''
     total_amount_query = '''
         SELECT SUM(Amount)
