@@ -91,11 +91,13 @@ def get_expenditure():
     cursor = conn.cursor()
     
     query = '''
-        SELECT Expenditure_id, User_id, Amount, ExpenditureType_id, ExpenditureDate
-        FROM Expenditure
-        WHERE YEAR(ExpenditureDate) = ? AND MONTH(ExpenditureDate) = ?
-        ORDER BY ExpenditureDate DESC
+        SELECT e.Expenditure_id, e.User_id, e.Amount, et.TypeName, e.ExpenditureDate
+        FROM Expenditure e
+        JOIN ExpenditureType et ON e.ExpenditureType_id = et.ExpenditureType_id
+        WHERE YEAR(e.ExpenditureDate) = ? AND MONTH(e.ExpenditureDate) = ?
+        ORDER BY e.ExpenditureDate DESC
     '''
+
     total_amount_query = '''
         SELECT SUM(Amount)
         FROM Expenditure
@@ -111,7 +113,7 @@ def get_expenditure():
     cursor.execute(query, query_params)
     
     expenditure = cursor.fetchall()
-    expenditure_list = [{'expenditure_id': row[0], 'user_id': row[1], 'amount': row[2], 'expenditure_type': row[3], 'expenditure_date': row[4].strftime('%Y-%m-%d')} for row in expenditure]
+    expenditure_list = [{'expenditure_id': row[0], 'user_id': row[1], 'amount': row[2], 'type': row[3], 'date': row[4].strftime('%Y-%m-%d')} for row in expenditure]
     
     # 計算total
     cursor.execute(total_amount_query, query_params)
@@ -121,7 +123,7 @@ def get_expenditure():
     conn.close()
 
     return jsonify({
-        'expenditure': expenditure_list,
+        'expenditures': expenditure_list,
         'total_amount': total_amount
     })
 

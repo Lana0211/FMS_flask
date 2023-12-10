@@ -90,11 +90,13 @@ def get_incomes():
     cursor = conn.cursor()
     
     query = '''
-        SELECT Income_id, User_id, Amount, IncomeType_id, IncomeDate
-        FROM Income
-        WHERE YEAR(IncomeDate) = ? AND MONTH(IncomeDate) = ?
-        ORDER BY IncomeDate DESC
+        SELECT i.Income_id, i.User_id, i.Amount, it.TypeName, i.IncomeDate
+        FROM Income i
+        JOIN IncomeType it ON i.IncomeType_id = it.IncomeType_id
+        WHERE YEAR(i.IncomeDate) = ? AND MONTH(i.IncomeDate) = ?
+        ORDER BY i.IncomeDate DESC
     '''
+
     total_amount_query = '''
         SELECT SUM(Amount)
         FROM Income
@@ -110,7 +112,7 @@ def get_incomes():
     cursor.execute(query, query_params)
     
     incomes = cursor.fetchall()
-    incomes_list = [{'income_id': row[0], 'user_id': row[1], 'amount': row[2], 'income_type': row[3], 'income_date': row[4].strftime('%Y-%m-%d')} for row in incomes]
+    incomes_list = [{'income_id': row[0], 'user_id': row[1], 'amount': row[2], 'type': row[3], 'date': row[4].strftime('%Y-%m-%d')} for row in incomes]
     
     # 計算total
     cursor.execute(total_amount_query, query_params)
