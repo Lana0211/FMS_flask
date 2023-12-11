@@ -38,7 +38,8 @@ def create_budget():
     '''
     cursor.execute(expenditure_query, (data['user_id'], data['expenditure_type'], year, month))
     total_expenditure = cursor.fetchone()[0] or 0
-    remaining_budget = data['amount'] - total_expenditure
+    remaining_budget = data['amount']
+    remaining_budget = remaining_budget - total_expenditure
 
     # 新增預算
     cursor.execute('''

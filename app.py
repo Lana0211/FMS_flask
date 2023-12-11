@@ -9,6 +9,7 @@ from api.budget import budget_blueprint
 from api.expenditure import expenditure_blueprint
 from api.income import income_blueprint
 from api.stock import stock_blueprint
+from api.type import type_blueprint
 
 app = Flask(__name__)
 CORS(app)
@@ -35,6 +36,7 @@ app.register_blueprint(income_blueprint, url_prefix='/api')
 app.register_blueprint(expenditure_blueprint, url_prefix='/api')
 app.register_blueprint(budget_blueprint, url_prefix='/api')
 app.register_blueprint(stock_blueprint, url_prefix='/api')
+app.register_blueprint(type_blueprint, url_prefix='/api')
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

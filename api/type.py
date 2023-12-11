@@ -7,24 +7,34 @@ type_blueprint = Blueprint('type', __name__)
 def get_db_connection():
     return pyodbc.connect(current_app.config['DB_CONNECTION_STRING'], autocommit=True)
 
-@type_blueprint.route('/api/types', methods=['GET'])
+@type_blueprint.route('/types', methods=['GET'])
 def get_types():
-    type_requested = request.args.get('type')  # 獲取類型：收入/支出
-    conn = get_db_connection()  # 获取数据库连接
+    type_id = request.args.get('type_id', default=None)
+    type = request.args.get('type')  # 'income' 或 'expenditure'
+
+    conn = get_db_connection()
     cursor = conn.cursor()
 
-    if type_requested == 'income':
-        # 查询所有收入类型
-        cursor.execute('SELECT * FROM IncomeType ORDER BY IncomeType_id ASC')
-    elif type_requested == 'expenditure':
-        # 查询所有支出类型
-        cursor.execute('SELECT * FROM ExpenditureType ORDER BY ExpenditureType_id ASC')
+    if type == 'income':
+        table_name = 'IncomeType'
+    elif type == 'expenditure':
+        table_name = 'ExpenditureType'
     else:
-        return jsonify({'message': 'Invalid type specified.'}), 400
-    types = cursor.fetchall()
-    types_list = [{'id': row[0], 'name': row[1]} for row in types]
+        return jsonify({'message': 'Invalid type category specified.'}), 400
+
+    if type_id:
+        cursor.execute(f'SELECT TypeName FROM {table_name} WHERE {table_name}_id = ?', (type_id,))
+        row = cursor.fetchone()
+        if row:
+            result = {'type_id': type_id, 'name': row[0]}
+        else:
+            return jsonify({'message': 'Type ID not found.'}), 404
+    else:
+        cursor.execute(f'SELECT {table_name}_id, TypeName FROM {table_name}')
+        rows = cursor.fetchall()
+        result = [{'type_id': row[0], 'name': row[1]} for row in rows]
 
     cursor.close()
     conn.close()
 
-    return jsonify(types_list)
+    return jsonify(result), 200
