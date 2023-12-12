@@ -99,6 +99,10 @@ def delete_budget(budget_id):
 
 @budget_blueprint.route('/budgets', methods=['GET'])
 def get_budgets():
+    user_id = request.args.get('user_id')  # Capture user_id from the request
+    if not user_id:
+        return jsonify({"error": "User ID is required"}), 400  # If no user_id is provided, return an error
+
     year = request.args.get('year', default=str(datetime.now().year))
     month = request.args.get('month', default=str(datetime.now().month).zfill(2))
     expenditure_type = request.args.get('expenditure_type')
@@ -106,14 +110,14 @@ def get_budgets():
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # 获取在指定的日期区间内的预算
+    # 获取在指定的日期区间内的预算，并且确保它只返回对应的user_id的数据
     budget_query = '''
         SELECT Budget_id, User_id, Amount, ExpenditureType_id, BudgetDate, RemainingBudget
         FROM Budget
-        WHERE YEAR(BudgetDate) = ? AND MONTH(BudgetDate) = ? 
+        WHERE User_id = ? AND YEAR(BudgetDate) = ? AND MONTH(BudgetDate) = ?
         ORDER BY RemainingBudget DESC
     '''
-    budget_query_params = [year, month]
+    budget_query_params = [user_id, year, month]  # Add user_id to the parameters
 
     if expenditure_type:
         budget_query += ' AND ExpenditureType_id = ?'
@@ -127,3 +131,35 @@ def get_budgets():
     conn.close()
 
     return jsonify(budgets_list), 200
+
+
+# @budget_blueprint.route('/budgets', methods=['GET'])
+# def get_budgets():
+#     year = request.args.get('year', default=str(datetime.now().year))
+#     month = request.args.get('month', default=str(datetime.now().month).zfill(2))
+#     expenditure_type = request.args.get('expenditure_type')
+    
+#     conn = get_db_connection()
+#     cursor = conn.cursor()
+    
+#     # 获取在指定的日期区间内的预算
+#     budget_query = '''
+#         SELECT Budget_id, User_id, Amount, ExpenditureType_id, BudgetDate, RemainingBudget
+#         FROM Budget
+#         WHERE YEAR(BudgetDate) = ? AND MONTH(BudgetDate) = ? 
+#         ORDER BY RemainingBudget DESC
+#     '''
+#     budget_query_params = [year, month]
+
+#     if expenditure_type:
+#         budget_query += ' AND ExpenditureType_id = ?'
+#         budget_query_params.append(expenditure_type)
+
+#     cursor.execute(budget_query, budget_query_params)
+#     budgets = cursor.fetchall()
+#     budgets_list = [{'budget_id': row[0], 'user_id': row[1], 'amount': row[2], 'expenditure_type': row[3], 'budget_date': row[4].strftime('%Y-%m-%d'), 'remaining_budget': row[5]} for row in budgets]
+
+#     cursor.close()
+#     conn.close()
+
+#     return jsonify(budgets_list), 200

@@ -79,45 +79,49 @@ def delete_income(income_id):
     conn.close()
     return jsonify({'message': 'Income deleted successfully.'})
 
-
 @income_blueprint.route('/incomes', methods=['GET'])
 def get_incomes():
+    user_id = request.args.get('user_id')  # Capture user_id from the request
+    if not user_id:
+        return jsonify({"error": "User ID is required"}), 400
+
     year = request.args.get('year', default=str(datetime.now().year))
     month = request.args.get('month', default=str(datetime.now().month).zfill(2))
     income_type = request.args.get('income_type')
-    
+
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     query = '''
         SELECT i.Income_id, i.User_id, i.Amount, it.TypeName, i.IncomeDate
         FROM Income i
         JOIN IncomeType it ON i.IncomeType_id = it.IncomeType_id
-        WHERE YEAR(i.IncomeDate) = ? AND MONTH(i.IncomeDate) = ?
+        WHERE i.User_id = ? AND YEAR(i.IncomeDate) = ? AND MONTH(i.IncomeDate) = ?
         ORDER BY i.IncomeDate DESC
     '''
 
     total_amount_query = '''
         SELECT SUM(Amount)
         FROM Income
-        WHERE YEAR(IncomeDate) = ? AND MONTH(IncomeDate) = ? 
+        WHERE User_id = ? AND YEAR(IncomeDate) = ? AND MONTH(IncomeDate) = ?
     '''
-    query_params = [year, month]
-    
+    query_params = [user_id, year, month]
+
     if income_type:
         query += ' AND IncomeType_id = ?'
         total_amount_query += ' AND IncomeType_id = ?'
         query_params.append(income_type)
-    
+
     cursor.execute(query, query_params)
-    
+
     incomes = cursor.fetchall()
     incomes_list = [{'income_id': row[0], 'user_id': row[1], 'amount': row[2], 'type': row[3], 'date': row[4].strftime('%Y-%m-%d')} for row in incomes]
     
-    # 計算total
+
+    # Calculate total
     cursor.execute(total_amount_query, query_params)
     total_amount = cursor.fetchone()[0]
-    
+
     cursor.close()
     conn.close()
 
@@ -125,4 +129,51 @@ def get_incomes():
         'incomes': incomes_list,
         'total_amount': total_amount
     })
+
+
+# @income_blueprint.route('/incomes', methods=['GET'])
+# def get_incomes():
+#     year = request.args.get('year', default=str(datetime.now().year))
+#     month = request.args.get('month', default=str(datetime.now().month).zfill(2))
+#     income_type = request.args.get('income_type')
+    
+#     conn = get_db_connection()
+#     cursor = conn.cursor()
+    
+#     query = '''
+#         SELECT i.Income_id, i.User_id, i.Amount, it.TypeName, i.IncomeDate
+#         FROM Income i
+#         JOIN IncomeType it ON i.IncomeType_id = it.IncomeType_id
+#         WHERE YEAR(i.IncomeDate) = ? AND MONTH(i.IncomeDate) = ?
+#         ORDER BY i.IncomeDate DESC
+#     '''
+
+#     total_amount_query = '''
+#         SELECT SUM(Amount)
+#         FROM Income
+#         WHERE YEAR(IncomeDate) = ? AND MONTH(IncomeDate) = ? 
+#     '''
+#     query_params = [year, month]
+    
+#     if income_type:
+#         query += ' AND IncomeType_id = ?'
+#         total_amount_query += ' AND IncomeType_id = ?'
+#         query_params.append(income_type)
+    
+#     cursor.execute(query, query_params)
+    
+#     incomes = cursor.fetchall()
+#     incomes_list = [{'income_id': row[0], 'user_id': row[1], 'amount': row[2], 'type': row[3], 'date': row[4].strftime('%Y-%m-%d')} for row in incomes]
+    
+#     # 計算total
+#     cursor.execute(total_amount_query, query_params)
+#     total_amount = cursor.fetchone()[0]
+    
+#     cursor.close()
+#     conn.close()
+
+#     return jsonify({
+#         'incomes': incomes_list,
+#         'total_amount': total_amount
+#     })
 

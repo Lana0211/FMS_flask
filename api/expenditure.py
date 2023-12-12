@@ -80,42 +80,45 @@ def delete_expenditure(expenditure_id):
     conn.close()
     return jsonify({'message': 'Expenditure deleted successfully.'})
 
-
 @expenditure_blueprint.route('/expenditures', methods=['GET'])
 def get_expenditure():
+    user_id = request.args.get('user_id')  # Capture user_id from the request
+    if not user_id:
+        return jsonify({"error": "User ID is required"}), 400
+
     year = request.args.get('year', default=str(datetime.now().year))
     month = request.args.get('month', default=str(datetime.now().month).zfill(2))
     expenditure_type = request.args.get('expenditure_type')
-    
+
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     query = '''
         SELECT e.Expenditure_id, e.User_id, e.Amount, et.TypeName, e.ExpenditureDate
         FROM Expenditure e
         JOIN ExpenditureType et ON e.ExpenditureType_id = et.ExpenditureType_id
-        WHERE YEAR(e.ExpenditureDate) = ? AND MONTH(e.ExpenditureDate) = ?
+        WHERE e.User_id = ? AND YEAR(e.ExpenditureDate) = ? AND MONTH(e.ExpenditureDate) = ?
         ORDER BY e.ExpenditureDate DESC
     '''
 
     total_amount_query = '''
         SELECT SUM(Amount)
         FROM Expenditure
-        WHERE YEAR(ExpenditureDate) = ? AND MONTH(ExpenditureDate) = ?
+        WHERE User_id = ? AND YEAR(ExpenditureDate) = ? AND MONTH(ExpenditureDate) = ?
     '''
-    query_params = [year, month]
-    
+    query_params = [user_id, year, month]
+
     if expenditure_type:
         query += ' AND ExpenditureType_id = ?'
         total_amount_query += ' AND ExpenditureType_id = ?'
         query_params.append(expenditure_type)
-    
+
     cursor.execute(query, query_params)
-    
+
     expenditure = cursor.fetchall()
     expenditure_list = [{'expenditure_id': row[0], 'user_id': row[1], 'amount': row[2], 'type': row[3], 'date': row[4].strftime('%Y-%m-%d')} for row in expenditure]
-    
-    # 計算total
+
+    # Calculate total
     cursor.execute(total_amount_query, query_params)
     total_amount = cursor.fetchone()[0]
 
@@ -126,4 +129,52 @@ def get_expenditure():
         'expenditures': expenditure_list,
         'total_amount': total_amount
     })
+
+
+
+# @expenditure_blueprint.route('/expenditures', methods=['GET'])
+# def get_expenditure():
+#     year = request.args.get('year', default=str(datetime.now().year))
+#     month = request.args.get('month', default=str(datetime.now().month).zfill(2))
+#     expenditure_type = request.args.get('expenditure_type')
+    
+#     conn = get_db_connection()
+#     cursor = conn.cursor()
+    
+#     query = '''
+#         SELECT e.Expenditure_id, e.User_id, e.Amount, et.TypeName, e.ExpenditureDate
+#         FROM Expenditure e
+#         JOIN ExpenditureType et ON e.ExpenditureType_id = et.ExpenditureType_id
+#         WHERE YEAR(e.ExpenditureDate) = ? AND MONTH(e.ExpenditureDate) = ?
+#         ORDER BY e.ExpenditureDate DESC
+#     '''
+
+#     total_amount_query = '''
+#         SELECT SUM(Amount)
+#         FROM Expenditure
+#         WHERE YEAR(ExpenditureDate) = ? AND MONTH(ExpenditureDate) = ?
+#     '''
+#     query_params = [year, month]
+    
+#     if expenditure_type:
+#         query += ' AND ExpenditureType_id = ?'
+#         total_amount_query += ' AND ExpenditureType_id = ?'
+#         query_params.append(expenditure_type)
+    
+#     cursor.execute(query, query_params)
+    
+#     expenditure = cursor.fetchall()
+#     expenditure_list = [{'expenditure_id': row[0], 'user_id': row[1], 'amount': row[2], 'type': row[3], 'date': row[4].strftime('%Y-%m-%d')} for row in expenditure]
+    
+#     # 計算total
+#     cursor.execute(total_amount_query, query_params)
+#     total_amount = cursor.fetchone()[0]
+
+#     cursor.close()
+#     conn.close()
+
+#     return jsonify({
+#         'expenditures': expenditure_list,
+#         'total_amount': total_amount
+#     })
 
