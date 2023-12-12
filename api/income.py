@@ -85,7 +85,6 @@ def get_incomes():
     year = request.args.get('year', default=str(datetime.now().year))
     month = request.args.get('month', default=str(datetime.now().month).zfill(2))
     income_type = request.args.get('income_type')
-    user_id = request.args.get('user_id')
     
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -94,16 +93,16 @@ def get_incomes():
         SELECT i.Income_id, i.User_id, i.Amount, it.TypeName, i.IncomeDate
         FROM Income i
         JOIN IncomeType it ON i.IncomeType_id = it.IncomeType_id
-        WHERE YEAR(i.IncomeDate) = ? AND MONTH(i.IncomeDate) = ? AND i.User_id = ?
+        WHERE YEAR(i.IncomeDate) = ? AND MONTH(i.IncomeDate) = ?
         ORDER BY i.IncomeDate DESC
     '''
 
     total_amount_query = '''
         SELECT SUM(Amount)
         FROM Income
-        WHERE YEAR(IncomeDate) = ? AND MONTH(IncomeDate) = ? AND i.User_id = ?
+        WHERE YEAR(IncomeDate) = ? AND MONTH(IncomeDate) = ? 
     '''
-    query_params = [year, month, user_id]
+    query_params = [year, month]
     
     if income_type:
         query += ' AND IncomeType_id = ?'

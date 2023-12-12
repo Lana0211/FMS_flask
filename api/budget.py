@@ -102,7 +102,6 @@ def get_budgets():
     year = request.args.get('year', default=str(datetime.now().year))
     month = request.args.get('month', default=str(datetime.now().month).zfill(2))
     expenditure_type = request.args.get('expenditure_type')
-    user_id = request.args.get('user_id')
     
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -111,10 +110,10 @@ def get_budgets():
     budget_query = '''
         SELECT Budget_id, User_id, Amount, ExpenditureType_id, BudgetDate, RemainingBudget
         FROM Budget
-        WHERE YEAR(BudgetDate) = ? AND MONTH(BudgetDate) = ? AND User_id = ?
+        WHERE YEAR(BudgetDate) = ? AND MONTH(BudgetDate) = ? 
         ORDER BY RemainingBudget DESC
     '''
-    budget_query_params = [year, month, user_id]
+    budget_query_params = [year, month]
 
     if expenditure_type:
         budget_query += ' AND ExpenditureType_id = ?'
