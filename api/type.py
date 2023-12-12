@@ -10,6 +10,7 @@ def get_db_connection():
 @type_blueprint.route('/types', methods=['GET'])
 def get_types():
     type_id = request.args.get('type_id', default=None)
+    type_name = request.args.get('type_name', default=None)
     type = request.args.get('type')  # 'income' 或 'expenditure'
 
     conn = get_db_connection()
@@ -29,6 +30,13 @@ def get_types():
             result = {'type_id': type_id, 'name': row[0]}
         else:
             return jsonify({'message': 'Type ID not found.'}), 404
+    elif type_name:
+        cursor.execute(f'SELECT {table_name}_id, TypeName FROM {table_name} WHERE TypeName = ?', (type_name,))
+        row = cursor.fetchone()
+        if row:
+            result = {'type_id': row[0], 'name': row[1]}
+        else:
+            return jsonify({'message': 'Type name not found.'}), 404
     else:
         cursor.execute(f'SELECT {table_name}_id, TypeName FROM {table_name}')
         rows = cursor.fetchall()
