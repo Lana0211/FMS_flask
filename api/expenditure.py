@@ -86,6 +86,7 @@ def get_expenditure():
     year = request.args.get('year', default=str(datetime.now().year))
     month = request.args.get('month', default=str(datetime.now().month).zfill(2))
     expenditure_type = request.args.get('expenditure_type')
+    user_id = request.args.get('user_id')
     
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -94,16 +95,16 @@ def get_expenditure():
         SELECT e.Expenditure_id, e.User_id, e.Amount, et.TypeName, e.ExpenditureDate
         FROM Expenditure e
         JOIN ExpenditureType et ON e.ExpenditureType_id = et.ExpenditureType_id
-        WHERE YEAR(e.ExpenditureDate) = ? AND MONTH(e.ExpenditureDate) = ?
+        WHERE YEAR(e.ExpenditureDate) = ? AND MONTH(e.ExpenditureDate) = ? AND e.User_id = ?
         ORDER BY e.ExpenditureDate DESC
     '''
 
     total_amount_query = '''
         SELECT SUM(Amount)
         FROM Expenditure
-        WHERE YEAR(ExpenditureDate) = ? AND MONTH(ExpenditureDate) = ?
+        WHERE YEAR(ExpenditureDate) = ? AND MONTH(ExpenditureDate) = ? AND e.User_id = ?
     '''
-    query_params = [year, month]
+    query_params = [year, month, user_id]
     
     if expenditure_type:
         query += ' AND ExpenditureType_id = ?'
