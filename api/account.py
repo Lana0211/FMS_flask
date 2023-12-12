@@ -52,12 +52,12 @@ def register():
 def get_account(user_id):
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute('SELECT User_id, User_name FROM User_info WHERE User_id = ?', user_id)
+    cursor.execute('SELECT User_id, User_name, User_mail, User_phone, Account, Password FROM User_info WHERE User_id = ?', user_id)
     account = cursor.fetchone()
     cursor.close()
     conn.close()
 
     if account:
-        return jsonify({'user_id': account[0], 'username': account[1]})
+        return jsonify({'user_id': account[0], 'user_name': account[1], 'user_mail': account[2], 'user_phone': account[3], 'account': account[4], 'password': account[5]})
     else:
         return jsonify({'message': 'Account not found'}), 404
