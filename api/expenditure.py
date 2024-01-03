@@ -19,6 +19,16 @@ def create_expenditure():
         VALUES (?, ?, ?, ?)
     ''', data['user_id'], data['amount'], data['expenditure_type'], data['expenditure_date'])
     conn.commit()
+
+    update_remaining_budget = '''
+        UPDATE Budget
+        SET RemainingBudget = RemainingBudget - ?
+        WHERE User_id = ? AND ExpenditureType_id = ? AND
+            YEAR(BudgetDate) = YEAR(?) AND MONTH(BudgetDate) = MONTH(?)
+    '''
+    cursor.execute(update_remaining_budget, (data['amount'], data['user_id'], data['expenditure_type'], data['expenditure_date'], data['expenditure_date']))
+    conn.commit()
+
     cursor.close()
     conn.close()
     return jsonify({'message': 'Expenditure created successfully.'}), 201
@@ -42,6 +52,11 @@ def update_expenditure(expenditure_id):
         cursor.close()
         conn.close()
         return jsonify({'message': 'Cannot update stock expenditure.'}), 400
+    
+    # 计算金额差额
+    get_old_amount = 'SELECT Amount FROM Expenditure WHERE Expenditure_id = ?'
+    cursor.execute(get_old_amount, (expenditure_id,))
+    old_amount = cursor.fetchone()[0]
 
     # 如果不是股票支出，执行更新操作
     cursor.execute('''
@@ -49,6 +64,15 @@ def update_expenditure(expenditure_id):
         SET Amount = ?, ExpenditureType_id = ?, expenditureDate = ?
         WHERE expenditure_id = ?
     ''', data['amount'], data['expenditure_type'], data['expenditure_date'], expenditure_id)
+
+    amount_difference = data['amount'] - old_amount
+    update_remaining_budget = '''
+        UPDATE Budget
+        SET RemainingBudget = RemainingBudget - ?
+        WHERE User_id = ? AND ExpenditureType_id = ? AND
+                YEAR(BudgetDate) = YEAR(?) AND MONTH(BudgetDate) = MONTH(?)
+    '''
+    cursor.execute(update_remaining_budget, (amount_difference, data['user_id'], data['expenditure_type'], data['expenditure_date'], data['expenditure_date']))
     conn.commit()
     cursor.close()
     conn.close()
@@ -72,6 +96,25 @@ def delete_expenditure(expenditure_id):
         cursor.close()
         conn.close()
         return jsonify({'message': 'Cannot delete stock expenditure.'}), 400
+
+    # 获取要删除的支出金额
+    get_amount = 'SELECT Amount, User_id, ExpenditureType_id, ExpenditureDate FROM Expenditure WHERE Expenditure_id = ?'
+    cursor.execute(get_amount, (expenditure_id,))
+    result = cursor.fetchone()
+    amount_to_restore = result[0]
+    user_id = result[1]
+    expenditure_type_id = result[2]
+    expenditure_date = result[3]
+
+    # 删除支出后增加对应预算的剩余金额
+    update_remaining_budget = '''
+        UPDATE Budget
+        SET RemainingBudget = RemainingBudget + ?
+        WHERE User_id = ? AND ExpenditureType_id = ? AND
+                YEAR(BudgetDate) = YEAR(?) AND MONTH(BudgetDate) = MONTH(?)
+    '''
+    cursor.execute(update_remaining_budget, (amount_to_restore, user_id, expenditure_type_id, expenditure_date, expenditure_date))
+    conn.commit()
 
     # 如果不是股票支出，执行删除操作
     cursor.execute('DELETE FROM Expenditure WHERE Expenditure_id = ?', expenditure_id)
